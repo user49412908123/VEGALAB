@@ -1,0 +1,234 @@
+.page,
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.hero span,
+.panel legend {
+  color: var(--accent-strong);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 19rem;
+  margin-top: 10px;
+  font-size: clamp(1.7rem, 8vw, 3rem);
+  line-height: 0.95;
+}
+
+.hero p {
+  max-width: 24rem;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.readiness {
+  min-height: 132px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 18px;
+  border: 1px solid var(--accent-line);
+  border-radius: var(--radius-lg);
+  background: rgba(255, 255, 255, 0.025);
+}
+
+.readiness small {
+  color: var(--muted);
+}
+
+.readiness strong {
+  display: block;
+  margin-top: 4px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 3rem;
+  line-height: 1;
+}
+
+.ring {
+  width: 86px;
+  height: 86px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, var(--surface) 56%, transparent 58%),
+    conic-gradient(var(--accent) var(--score), rgba(255, 255, 255, 0.09) 0);
+}
+
+.dateField,
+.panel {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.dateField {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  color: var(--muted-strong);
+  font-size: 0.78rem;
+}
+
+.dateField input {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--foreground);
+}
+
+.selectRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.035);
+  color: var(--muted-strong);
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.selectRow select {
+  min-height: 46px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--foreground);
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+}
+
+.panel legend {
+  padding-inline: 5px;
+}
+
+.preset,
+.toggleRow {
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.preset span,
+.toggleRow span {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 0.9rem;
+  font-weight: 650;
+}
+
+.preset div {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(58px, 1fr));
+  gap: 7px;
+}
+
+.preset button,
+.actions button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: var(--foreground);
+  font-weight: 750;
+}
+
+.preset .presetActive {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
+.toggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.toggleRow span {
+  margin: 0;
+}
+
+.switch {
+  position: relative;
+  width: 56px;
+  height: 32px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.switch[data-state="checked"] {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.thumb {
+  width: 26px;
+  height: 26px;
+  display: block;
+  transform: translateX(2px);
+  border-radius: 50%;
+  background: var(--muted-strong);
+  transition: transform 160ms ease, background 160ms ease;
+}
+
+.switch[data-state="checked"] .thumb {
+  transform: translateX(26px);
+  background: var(--accent-strong);
+}
+
+.actions {
+  position: sticky;
+  bottom: 92px;
+  z-index: 10;
+  min-height: 62px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 8px 8px 8px 16px;
+  background: rgba(16, 16, 20, 0.9);
+  backdrop-filter: blur(16px);
+}
+
+.actions span {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 0.8rem;
+}
+
+.actions button {
+  min-width: 132px;
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}

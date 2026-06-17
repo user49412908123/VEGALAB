@@ -1,0 +1,121 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.hero {
+  padding: 20px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-lg);
+  background:
+    linear-gradient(135deg, rgba(255, 79, 163, 0.16), transparent 52%),
+    rgba(255, 255, 255, 0.035);
+}
+
+.hero span {
+  color: var(--accent-strong);
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.hero h1 {
+  max-width: 20rem;
+  margin-top: 10px;
+  font-size: clamp(1.7rem, 8vw, 3rem);
+  line-height: 0.95;
+}
+
+.hero p {
+  max-width: 25rem;
+  margin-top: 12px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.kpis {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.kpi,
+.chart {
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.kpi {
+  min-height: 106px;
+  padding: 15px;
+}
+
+.kpi small {
+  color: var(--muted);
+  font-size: 0.76rem;
+}
+
+.kpi strong {
+  display: block;
+  margin-top: 12px;
+  font-family: var(--font-geist-mono), monospace;
+  font-size: 1.65rem;
+}
+
+.pink {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+}
+
+.neutral {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.good strong {
+  color: var(--success);
+}
+
+.warn strong {
+  color: var(--warning);
+}
+
+.chart {
+  overflow: hidden;
+  padding: 16px 10px 10px;
+}
+
+.chart h2 {
+  margin: 0 6px 10px;
+  font-size: 1rem;
+}
+
+.tooltip {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  background: #17171d;
+  box-shadow: 0 16px 36px rgba(0, 0, 0, 0.4);
+}
+
+.tooltip strong {
+  color: var(--foreground);
+  font-size: 0.8rem;
+}
+
+.tooltip span {
+  color: var(--muted-strong);
+  font-size: 0.72rem;
+}
+
+@media (min-width: 640px) {
+  .kpis {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
