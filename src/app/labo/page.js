@@ -14,7 +14,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { demoSessions, demoTelemetry } from "../lib/demoData";
 import { loadVegalabData } from "../lib/vegalabData";
 import styles from "./labo.module.css";
 
@@ -24,8 +23,9 @@ const average = (items, selector) => {
 };
 
 export default function LaboPage() {
-  const [sessions, setSessions] = useState(demoSessions);
-  const [telemetry, setTelemetry] = useState(demoTelemetry);
+  const [sessions, setSessions] = useState([]);
+  const [telemetry, setTelemetry] = useState([]);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     let active = true;
@@ -33,6 +33,11 @@ export default function LaboPage() {
       if (!active) return;
       setSessions(data.sessions);
       setTelemetry(data.telemetry);
+      setError("");
+    }).catch((err) => {
+      if (!active) return;
+      console.error("Failed to load lab data:", err);
+      setError("Impossible de charger les données Supabase.");
     });
     return () => {
       active = false;
@@ -91,6 +96,7 @@ export default function LaboPage() {
         <p>Sommeil, hydratation, stress, doigts, charge interne et progression dans un tableau de bord compact.</p>
       </div>
 
+      {error ? <p style={{ color: "var(--danger)", marginTop: 12 }}>{error}</p> : null}
 
       <ChartPanel title="Readiness vs réussite">
         <ResponsiveContainer width="100%" height={260}>

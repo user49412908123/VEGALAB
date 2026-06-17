@@ -8,7 +8,7 @@ import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import MetricSlider from "../components/MetricSlider";
-import { demoCycles, demoSessions, sessionTypes } from "../lib/demoData";
+import { sessionTypes } from "../lib/demoData";
 import {
   deleteCycle,
   deleteSession,
@@ -35,6 +35,14 @@ const addDays = (date, days) => {
   return localIsoDate(next);
 };
 
+const formatDuration = (minutes) => {
+  const hours = Math.floor(minutes / 60);
+  const remaining = minutes % 60;
+  if (!hours) return `${minutes} min`;
+  if (!remaining) return `${hours} h`;
+  return `${hours} h ${String(remaining).padStart(2, "0")}`;
+};
+
 const locations = ["Charleroi", "Bruxelles", "Anvers", "Nivelles", "Autre"];
 const cycleColors = [
   { value: "pink", label: "Rose" },
@@ -44,6 +52,8 @@ const cycleColors = [
   { value: "slate", label: "Gris" },
 ];
 
+const durationOptions = [30, 45, 60, 75, 90, 105, 120, 150, 180, 210, 240, 270, 300, 330, 360, 390, 420];
+
 const filters = [
   { id: "today", label: "Aujourd'hui", days: 0 },
   { id: "3", label: "3 prochains jours", days: 3 },
@@ -52,7 +62,7 @@ const filters = [
 ];
 
 const sessionSchema = z.object({
-  cycle_ids: z.array(z.string()).default([]),
+  cycle_id: z.string().default(""),
   name: z.string().min(2, "Nom requis"),
   date: z.string().min(10),
   time: z.string().min(4),
@@ -74,7 +84,7 @@ const sessionSchema = z.object({
 });
 
 const defaultSession = {
-  cycle_ids: [],
+  cycle_id: "",
   name: "Nouvelle séance",
   date: todayIso,
   time: "18:30",
@@ -118,34 +128,28 @@ const formatDay = (date) =>
     new Date(`${date}T12:00:00`),
   );
 
-const sessionCycleIds = (session) => {
-  if (Array.isArray(session.cycle_ids)) return session.cycle_ids.filter(Boolean);
-  if (session.cycle_id) return [session.cycle_id];
-  return [];
-};
-
 const prepareSessionPayload = (values) => ({
   ...values,
-  cycle_id: values.cycle_ids[0] ?? null,
-  cycle_ids: values.cycle_ids,
+  cycle_id: values.cycle_id || null,
 });
 
 const sessionDefaultsFrom = (session) => ({
   ...defaultSession,
   ...session,
-  cycle_ids: sessionCycleIds(session),
+  cycle_id: session.cycle_id ?? "",
   location: locations.includes(session.location) ? session.location : "Autre",
 });
 
 export default function SequenceurPage() {
-  const [sessions, setSessions] = useState(demoSessions);
-  const [cycles, setCycles] = useState(demoCycles);
+  const [sessions, setSessions] = useState([]);
+  const [cycles, setCycles] = useState([]);
   const [sessionModal, setSessionModal] = useState({ open: false, mode: "create", item: null });
   const [cycleModal, setCycleModal] = useState({ open: false, mode: "create", item: null });
   const [duplicate, setDuplicate] = useState(null);
   const [filter, setFilter] = useState("7");
   const [saving, setSaving] = useState(false);
   const [cycleSaving, setCycleSaving] = useState(false);
+  const [syncError, setSyncError] = useState("");
 
   const form = useForm({ resolver: zodResolver(sessionSchema), defaultValues: defaultSession });
   const cycleForm = useForm({ resolver: zodResolver(cycleSchema), defaultValues: defaultCycle });
@@ -158,6 +162,11 @@ export default function SequenceurPage() {
       if (!active) return;
       setSessions(data.sessions);
       setCycles(data.cycles);
+      setSyncError("");
+    }).catch((error) => {
+      if (!active) return;
+      console.error("Failed to load Supabase data:", error);
+      setSyncError("Impossible de charger les données Supabase.");
     });
     return () => {
       active = false;
@@ -169,7 +178,7 @@ export default function SequenceurPage() {
   }, [sessions]);
 
   const openNewSession = () => {
-    form.reset({ ...defaultSession, cycle_ids: cycles[0]?.id ? [cycles[0].id] : [] });
+    form.reset({ ...defaultSession, cycle_id: cycles[0]?.id ?? "" });
     setSessionModal({ open: true, mode: "create", item: null });
   };
 
@@ -190,6 +199,7 @@ export default function SequenceurPage() {
 
   const onSubmit = async (values) => {
     setSaving(true);
+    setSyncError("");
     const payload = prepareSessionPayload(values);
     const editingId = sessionModal.item?.id;
     try {
@@ -199,65 +209,63 @@ export default function SequenceurPage() {
           ? current.map((session) => (session.id === editingId ? saved : session))
           : [...current, saved],
       );
-    } catch {
-      const local = { ...payload, id: editingId ?? crypto.randomUUID() };
-      setSessions((current) =>
-        editingId
-          ? current.map((session) => (session.id === editingId ? local : session))
-          : [...current, local],
-      );
+      setSessionModal({ open: false, mode: "create", item: null });
+    } catch (error) {
+      console.error("Failed to save session:", error);
+      setSyncError("La séance n'a pas pu être enregistrée dans Supabase.");
     } finally {
       setSaving(false);
-      setSessionModal({ open: false, mode: "create", item: null });
     }
   };
 
   const onCycleSubmit = async (values) => {
     setCycleSaving(true);
+    setSyncError("");
     const editingId = cycleModal.item?.id;
     try {
       const saved = editingId ? await updateCycle(editingId, values) : await insertCycle(values);
       setCycles((current) =>
         editingId ? current.map((cycle) => (cycle.id === editingId ? saved : cycle)) : [...current, saved],
       );
-    } catch {
-      const local = { ...values, id: editingId ?? crypto.randomUUID() };
-      setCycles((current) =>
-        editingId ? current.map((cycle) => (cycle.id === editingId ? local : cycle)) : [...current, local],
-      );
+      setCycleModal({ open: false, mode: "create", item: null });
+    } catch (error) {
+      console.error("Failed to save cycle:", error);
+      setSyncError("Le cycle n'a pas pu être enregistré dans Supabase.");
     } finally {
       setCycleSaving(false);
-      setCycleModal({ open: false, mode: "create", item: null });
     }
   };
 
   const removeSession = async (session) => {
     if (!window.confirm(`Supprimer "${session.name}" ?`)) return;
+    setSyncError("");
     try {
       await deleteSession(session.id);
-    } catch {
-      // Local fallback keeps the interaction responsive when Supabase is not writable.
+      setSessions((current) => current.filter((item) => item.id !== session.id));
+      setSessionModal({ open: false, mode: "create", item: null });
+    } catch (error) {
+      console.error("Failed to delete session:", error);
+      setSyncError("La suppression de la séance a échoué.");
     }
-    setSessions((current) => current.filter((item) => item.id !== session.id));
-    setSessionModal({ open: false, mode: "create", item: null });
   };
 
   const removeCycle = async (cycle) => {
     if (!window.confirm(`Supprimer le cycle "${cycle.name}" ?`)) return;
+    setSyncError("");
     try {
       await deleteCycle(cycle.id);
-    } catch {
-      // Local fallback.
+      setCycles((current) => current.filter((item) => item.id !== cycle.id));
+      setSessions((current) =>
+        current.map((session) => ({
+          ...session,
+          cycle_id: session.cycle_id === cycle.id ? null : session.cycle_id,
+        })),
+      );
+      setCycleModal({ open: false, mode: "create", item: null });
+    } catch (error) {
+      console.error("Failed to delete cycle:", error);
+      setSyncError("La suppression du cycle a échoué.");
     }
-    setCycles((current) => current.filter((item) => item.id !== cycle.id));
-    setSessions((current) =>
-      current.map((session) => ({
-        ...session,
-        cycle_ids: sessionCycleIds(session).filter((id) => id !== cycle.id),
-        cycle_id: session.cycle_id === cycle.id ? null : session.cycle_id,
-      })),
-    );
-    setCycleModal({ open: false, mode: "create", item: null });
   };
 
   const duplicateSession = async (session, dayOffset) => {
@@ -270,8 +278,9 @@ export default function SequenceurPage() {
     try {
       const saved = await insertSession(prepareSessionPayload(payload));
       setSessions((current) => [...current, saved]);
-    } catch {
-      setSessions((current) => [...current, { ...payload, id: crypto.randomUUID() }]);
+    } catch (error) {
+      console.error("Failed to duplicate session:", error);
+      setSyncError("La duplication de la séance a échoué.");
     }
     setDuplicate(null);
   };
@@ -281,7 +290,7 @@ export default function SequenceurPage() {
       <div className={styles.hero}>
         <div>
           <span className={styles.kicker}>Séquenceur</span>
-          <h1>Planning d'entraînement.</h1>
+          <h1>Planning d&apos;entraînement.</h1>
           <p>Une timeline compacte pour programmer, ajuster et relier les séances aux cycles.</p>
         </div>
         <div className={styles.heroActions}>
@@ -293,6 +302,8 @@ export default function SequenceurPage() {
           </button>
         </div>
       </div>
+
+      {syncError ? <p style={{ color: "var(--danger)", marginTop: 12 }}>{syncError}</p> : null}
 
       <div className={styles.filters} aria-label="Filtrer les séances">
         {filters.map((item) => (
@@ -309,51 +320,50 @@ export default function SequenceurPage() {
 
       <div className={styles.cycles} aria-label="Cycles">
         {cycles.map((cycle) => (
-          <div
-            key={cycle.id ?? cycle.name}
-            className={`${styles.cycle} ${styles[cycle.color] ?? styles.pink}`}
-          >
-            <div style={{ display: "flex", width: "100%", justifyContent: "space-between", gap: 12 }}>
-              <button
-                type="button"
-                style={{ textAlign: "left", background: "transparent", border: 0, padding: 0, color: "inherit" }}
-                onClick={() => openEditCycle(cycle)}
-              >
+          <article key={cycle.id ?? cycle.name} className={styles.cycle}>
+            <button
+              type="button"
+              className={styles.cycleBody}
+              onClick={() => openEditCycle(cycle)}
+            >
+              <span className={`${styles.cycleDot} ${styles[cycle.color] ?? styles.pink}`} aria-hidden="true" />
+              <div className={styles.cycleCopy}>
                 <span>{cycle.main_theme}</span>
-                <strong style={{ display: "block", marginTop: 4 }}>{cycle.name}</strong>
-                <small style={{ display: "block", marginTop: 6 }}>
-                  {cycle.start_date} / {cycle.end_date}
+                <strong>{cycle.name}</strong>
+                <small>
+                  {cycle.start_date} → {cycle.end_date}
                 </small>
-              </button>
+                {cycle.objective ? <p>{cycle.objective}</p> : null}
+              </div>
+            </button>
 
-              <DropdownMenu.Root>
-                <DropdownMenu.Trigger
-                  className={styles.select}
-                  type="button"
-                  onClick={(e) => e.stopPropagation()}
-                  aria-label="Cycle options"
-                >
-                  ⋯
-                </DropdownMenu.Trigger>
-                <DropdownMenu.Portal>
-                  <DropdownMenu.Content className={styles.menu} sideOffset={8}>
-                    <DropdownMenu.Item
-                      className={styles.menuItem}
-                      onSelect={() => openEditCycle(cycle)}
-                    >
-                      Modifier
-                    </DropdownMenu.Item>
-                    <DropdownMenu.Item
-                      className={styles.menuItem}
-                      onSelect={() => removeCycle(cycle)}
-                    >
-                      Supprimer
-                    </DropdownMenu.Item>
-                  </DropdownMenu.Content>
-                </DropdownMenu.Portal>
-              </DropdownMenu.Root>
-            </div>
-          </div>
+            <DropdownMenu.Root>
+              <DropdownMenu.Trigger
+                className={styles.select}
+                type="button"
+                onClick={(e) => e.stopPropagation()}
+                aria-label="Cycle options"
+              >
+                ⋯
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Portal>
+                <DropdownMenu.Content className={styles.menu} sideOffset={8}>
+                  <DropdownMenu.Item
+                    className={styles.menuItem}
+                    onSelect={() => openEditCycle(cycle)}
+                  >
+                    Modifier
+                  </DropdownMenu.Item>
+                  <DropdownMenu.Item
+                    className={styles.menuItem}
+                    onSelect={() => removeCycle(cycle)}
+                  >
+                    Supprimer
+                  </DropdownMenu.Item>
+                </DropdownMenu.Content>
+              </DropdownMenu.Portal>
+            </DropdownMenu.Root>
+          </article>
         ))}
       </div>
 
@@ -362,7 +372,7 @@ export default function SequenceurPage() {
           <SessionCard
             key={session.id ?? `${session.date}-${session.name}`}
             session={session}
-            cycles={cycles.filter((cycle) => sessionCycleIds(session).includes(cycle.id))}
+            cycles={cycles.filter((cycle) => session.cycle_id === cycle.id)}
             index={index}
             onEdit={openEditSession}
             onDelete={removeSession}
@@ -412,6 +422,35 @@ export default function SequenceurPage() {
   );
 }
 
+function DurationPicker({ control, name, options }) {
+  return (
+    <Controller
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <div className={styles.durationPicker}>
+          <span>Durée</span>
+          <div className={styles.durationGrid}>
+            {options.map((duration) => {
+              const selected = Number(field.value) === Number(duration);
+              return (
+                <button
+                  key={duration}
+                  type="button"
+                  className={selected ? styles.durationActive : ""}
+                  onClick={() => field.onChange(duration)}
+                >
+                  {formatDuration(duration)}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    />
+  );
+}
+
 function SessionDialog({ cycles, form, modal, saving, onClose, onSubmit, onDelete }) {
   return (
     <Dialog.Root open={modal.open} onOpenChange={(open) => (!open ? onClose() : null)}>
@@ -440,47 +479,17 @@ function SessionDialog({ cycles, form, modal, saving, onClose, onSubmit, onDelet
             <DropdownField control={form.control} name="type" options={sessionTypes} />
             <DropdownField control={form.control} name="location" options={locations} />
 
-            <Controller
+            <DropdownField
               control={form.control}
-              name="cycle_ids"
-              render={({ field }) => (
-                <div className={styles.multiSelect}>
-                  <span>Cycles</span>
-                  <div>
-                    {cycles.map((cycle) => {
-                      const selected = field.value.includes(cycle.id);
-                      return (
-                        <button
-                          key={cycle.id}
-                          type="button"
-                          className={selected ? styles.multiActive : ""}
-                          onClick={() => {
-                            field.onChange(
-                              selected
-                                ? field.value.filter((id) => id !== cycle.id)
-                                : [...field.value, cycle.id],
-                            );
-                          }}
-                        >
-                          {cycle.name}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              )}
+              name="cycle_id"
+              options={["", ...cycles.map((cycle) => cycle.id)]}
+              labels={Object.fromEntries([
+                ["", "Aucun cycle"],
+                ...cycles.map((cycle) => [cycle.id, cycle.name]),
+              ])}
             />
 
-            <label>
-              Duree
-              <select {...form.register("duration")}>
-                {[45, 60, 75, 90, 105, 120, 150].map((duration) => (
-                  <option key={duration} value={duration}>
-                    {duration} min
-                  </option>
-                ))}
-              </select>
-            </label>
+            <DurationPicker control={form.control} name="duration" options={durationOptions} />
 
             <label>
               Objectif

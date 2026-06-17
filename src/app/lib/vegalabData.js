@@ -1,7 +1,6 @@
 "use client";
 
 import { createClient } from "./supabase";
-import { demoCycles, demoSessions, demoTelemetry } from "./demoData";
 
 const byDateAsc = (a, b) => `${a.date} ${a.time ?? ""}`.localeCompare(`${b.date} ${b.time ?? ""}`);
 
@@ -17,7 +16,6 @@ const pick = (item, keys, fallback = undefined) => {
 export const normalizeSession = (session) => ({
   ...session,
   cycle_id: pick(session, ["cycle_id", "cycleId", "cycle", "id_cycle"], ""),
-  cycle_ids: pick(session, ["cycle_ids", "cycleIds", "cycles_ids"], pick(session, ["cycle_id", "cycleId", "cycle", "id_cycle"], "") ? [pick(session, ["cycle_id", "cycleId", "cycle", "id_cycle"], "")] : []),
   name: pick(session, ["name", "nom"], ""),
   date: pick(session, ["date"], ""),
   time: pick(session, ["time", "heure"], ""),
@@ -73,170 +71,74 @@ export const normalizeTelemetry = (entry) => ({
   screen_interactions: pick(entry, ["screen_interactions", "interactions_ecrans"], 5),
 });
 
-const sessionPayloads = (session) => [
-  session,
-  {
-    // English-ish keys (for backwards compat)
-    cycle_id: session.cycle_id,
-    cycle_ids: session.cycle_ids,
-    name: session.name,
-    date: session.date,
-    time: session.time,
-    duration: session.duration,
-    location: session.location,
-    objective: session.objective,
-    notes: session.notes,
-    type: session.type,
-    rpe: session.rpe,
-    internal_load: session.internal_load,
-    predicted_muscular_form: session.predicted_muscular_form,
-    predicted_finger_form: session.predicted_finger_form,
-    predicted_neural_form: session.predicted_neural_form,
-    predicted_general_form: session.predicted_general_form,
-    success_rate: session.success_rate,
-    motivation: session.motivation,
-    one_arm_hang_feeling: session.one_arm_hang_feeling,
-    explosive_pull_feeling: session.explosive_pull_feeling,
-  },
-  {
-    // French/legacy column names (covers the DB schema variations)
-    cycle_id: session.cycle_id,
-    cycle_ids: session.cycle_ids,
-    nom: session.name,
-    date: session.date,
-    heure: session.time,
-    duree: session.duration,
-    duree_minutes: session.duration,
-    lieu: session.location,
-    objectif: session.objective,
-    notes: session.notes,
-    type: session.type,
-    type_seance: session.type,
-    rpe: session.rpe,
-    charge_interne: session.internal_load,
-    taux_reussite: session.success_rate,
-    motivation: session.motivation,
-    forme_musculaire: session.predicted_muscular_form,
-    forme_doigts: session.predicted_finger_form,
-    forme_nerveuse: session.predicted_neural_form,
-    forme_generale: session.predicted_general_form,
-    suspension_1bras: session.one_arm_hang_feeling,
-    traction_explosive: session.explosive_pull_feeling,
-  },
-];
+const sessionPayload = (session) => ({
+  cycle_id: session.cycle_id || null,
+  nom: session.name,
+  date: session.date,
+  heure: session.time || null,
+  duree_minutes: session.duration,
+  objectif: session.objective || null,
+  type_seance: session.type,
+  notes: session.notes || null,
+  rpe: session.rpe,
+  charge_interne: session.internal_load,
+  taux_reussite: session.success_rate,
+  motivation: session.motivation,
+  forme_musculaire: session.predicted_muscular_form,
+  forme_doigts: session.predicted_finger_form,
+  forme_nerveuse: session.predicted_neural_form,
+  forme_generale: session.predicted_general_form,
+  suspension_1bras: session.one_arm_hang_feeling,
+  traction_explosive: session.explosive_pull_feeling,
+  location: session.location || null,
+});
 
-const cyclePayloads = (cycle) => [
-  cycle,
-  {
-    nom: cycle.name,
-    date_debut: cycle.start_date,
-    date_fin: cycle.end_date,
-    objectif: cycle.objective,
-    theme_principal: cycle.main_theme,
-    couleur: cycle.color,
-  },
-];
+const cyclePayload = (cycle) => ({
+  nom: cycle.name,
+  date_debut: cycle.start_date,
+  date_fin: cycle.end_date,
+  objectif: cycle.objective || null,
+  theme_principal: cycle.main_theme,
+  couleur: cycle.color,
+});
 
-const telemetryPayloads = (entry) => [
-  entry,
-  {
-    // English keys
-    date: entry.date,
-    sleep_quality: entry.sleep_quality,
-    bedtime: entry.bedtime,
-    wake_time: entry.wake_time,
-    naps_count: entry.naps_count,
-    naps_total_duration: entry.naps_total_duration,
-    work_stress: entry.work_stress,
-    work_volume: entry.work_volume,
-    personal_stress: entry.personal_stress,
-    work_satisfaction: entry.work_satisfaction,
-    motivation: entry.motivation,
-    confidence: entry.confidence,
-    mood: entry.mood,
-    meditation: entry.meditation,
-    hydration: entry.hydration,
-    breakfast_quality: entry.breakfast_quality,
-    lunch_quality: entry.lunch_quality,
-    dinner_quality: entry.dinner_quality,
-    morning_mobility: entry.morning_mobility,
-    soreness_index: entry.soreness_index,
-    screen_interactions: entry.screen_interactions,
-  },
-  {
-    // French / alternative column names used in your DB
-    date: entry.date,
-    sommeil_qualite: entry.sleep_quality,
-    sommeil_horaire_coucher: entry.bedtime,
-    sommeil_horaire_reveil: entry.wake_time,
-    sieste_nombre: entry.naps_count,
-    sieste_duree: entry.naps_total_duration,
-    stress_travail: entry.work_stress,
-    volume_travail: entry.work_volume,
-    stress_perso: entry.personal_stress,
-    satisfaction_travail: entry.work_satisfaction,
-    motivation: entry.motivation,
-    confiance: entry.confidence,
-    humeur: entry.mood,
-    meditation: entry.meditation,
-    hydratation: entry.hydration,
-    qualite_repas_matin: entry.breakfast_quality,
-    qualite_repas_midi: entry.lunch_quality,
-    qualite_repas_soir: entry.dinner_quality,
-    mobilite_matinale: entry.morning_mobility,
-    indice_courbature_generale: entry.soreness_index,
-    interactions_ecran: entry.screen_interactions,
-  },
-];
+const telemetryPayload = (entry) => ({
+  date: entry.date,
+  sommeil_qualite: entry.sleep_quality,
+  sommeil_horaire_coucher: entry.bedtime || null,
+  sommeil_horaire_reveil: entry.wake_time || null,
+  sieste_nombre: entry.naps_count,
+  sieste_duree: entry.naps_total_duration,
+  stress_travail: entry.work_stress,
+  volume_travail: entry.work_volume,
+  stress_perso: entry.personal_stress,
+  satisfaction_travail: entry.work_satisfaction,
+  motivation: entry.motivation,
+  confiance: entry.confidence,
+  humeur: entry.mood,
+  meditation: entry.meditation,
+  hydratation: entry.hydration,
+  qualite_repas_matin: entry.breakfast_quality,
+  qualite_repas_midi: entry.lunch_quality,
+  qualite_repas_soir: entry.dinner_quality,
+  mobilite_matinale: entry.morning_mobility,
+  indice_courbature_generale: entry.soreness_index,
+  interactions_ecran: entry.screen_interactions,
+});
 
-async function firstSuccessfulWrite(payloads, writer) {
-  let lastError;
-  for (const payload of payloads) {
-    try {
-      const result = await writer(payload);
-      // writer returns supabase response with { data, error }
-      if (result && !result.error) return result.data;
-      if (result && result.error) {
-        // log error detail for diagnostics
-        // eslint-disable-next-line no-console
-        console.error("Supabase write error:", result.error, "payload:", payload);
-        lastError = result.error;
-      }
-    } catch (err) {
-      // eslint-disable-next-line no-console
-      console.error("Unexpected write exception:", err, "payload:", payload);
-      lastError = err;
-    }
+async function readTable(table, query) {
+  const supabase = createClient();
+  const request = query ? query(supabase.from(table)) : supabase.from(table).select("*");
+  const { data, error } = await request;
+
+  if (error) {
+    throw error;
   }
-  throw lastError;
-}
 
-async function readTable(table, fallback, query) {
-  try {
-    const supabase = createClient();
-    const request = query ? query(supabase.from(table)) : supabase.from(table).select("*");
-    const { data, error } = await request;
-    if (error) {
-      // eslint-disable-next-line no-console
-      console.error(`Error reading table ${table}:`, error);
-      return { data: fallback, source: "demo", error };
-    }
-    if (!data || !data.length) {
-      // eslint-disable-next-line no-console
-      console.warn(`Read ${table}: no rows returned, falling back to demo`);
-      return { data: fallback, source: "demo" };
-    }
-    return { data, source: "supabase" };
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(`Exception reading table ${table}:`, error);
-    return { data: fallback, source: "demo", error };
-  }
+  return data ?? [];
 }
 
 export async function loadVegalabData(days = undefined) {
-  // days: number -> load sessions from today up to today+days
-  // days === null or undefined -> load all sessions (backwards compatible)
   const sessionQuery = (table) => {
     if (days === null || days === undefined) return table.select("*").order("date");
     const today = new Date();
@@ -248,57 +150,47 @@ export async function loadVegalabData(days = undefined) {
   };
 
   const [sessionsResult, cyclesResult, telemetryResult] = await Promise.all([
-    readTable("sessions", demoSessions, sessionQuery),
-    readTable("cycles", demoCycles),
-    readTable("daily_telemetry", demoTelemetry, (table) => table.select("*").order("date")),
+    readTable("sessions", sessionQuery),
+    readTable("cycles"),
+    readTable("daily_telemetry", (table) => table.select("*").order("date")),
   ]);
 
   return {
-    sessions: sessionsResult.data.map(normalizeSession).sort(byDateAsc),
-    cycles: cyclesResult.data.map(normalizeCycle).sort((a, b) => a.start_date.localeCompare(b.start_date)),
-    telemetry: telemetryResult.data.map(normalizeTelemetry),
-    source:
-      sessionsResult.source === "supabase" ||
-      cyclesResult.source === "supabase" ||
-      telemetryResult.source === "supabase"
-        ? "supabase"
-        : "demo",
+    sessions: sessionsResult.map(normalizeSession).sort(byDateAsc),
+    cycles: cyclesResult.map(normalizeCycle).sort((a, b) => a.start_date.localeCompare(b.start_date)),
+    telemetry: telemetryResult.map(normalizeTelemetry),
   };
+}
+
+export async function loadTelemetryEntries() {
+  const supabase = createClient();
+  const { data, error } = await supabase.from("daily_telemetry").select("*").order("date");
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []).map(normalizeTelemetry);
 }
 
 export async function insertSession(session) {
   const supabase = createClient();
-  try {
-    const data = await firstSuccessfulWrite(sessionPayloads(session), (payload) =>
-      supabase.from("sessions").insert(payload).select().single(),
-    );
-    return normalizeSession(data);
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("insertSession failed:", error);
-    throw error;
-  }
+  const { data, error } = await supabase.from("sessions").insert(sessionPayload(session)).select().single();
+  if (error) throw error;
+  return normalizeSession(data);
 }
 
 export async function updateSession(id, session) {
   const supabase = createClient();
-  try {
-    const data = await firstSuccessfulWrite(sessionPayloads(session), (payload) =>
-      supabase.from("sessions").update(payload).eq("id", id).select().single(),
-    );
-    return normalizeSession(data);
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("updateSession failed:", error);
-    throw error;
-  }
+  const { data, error } = await supabase.from("sessions").update(sessionPayload(session)).eq("id", id).select().single();
+  if (error) throw error;
+  return normalizeSession(data);
 }
 
 export async function deleteSession(id) {
   const supabase = createClient();
   const { error } = await supabase.from("sessions").delete().eq("id", id);
   if (error) {
-    // eslint-disable-next-line no-console
     console.error("deleteSession failed:", error);
     throw error;
   }
@@ -306,37 +198,22 @@ export async function deleteSession(id) {
 
 export async function insertCycle(cycle) {
   const supabase = createClient();
-  try {
-    const data = await firstSuccessfulWrite(cyclePayloads(cycle), (payload) =>
-      supabase.from("cycles").insert(payload).select().single(),
-    );
-    return normalizeCycle(data);
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("insertCycle failed:", error);
-    throw error;
-  }
+  const { data, error } = await supabase.from("cycles").insert(cyclePayload(cycle)).select().single();
+  if (error) throw error;
+  return normalizeCycle(data);
 }
 
 export async function updateCycle(id, cycle) {
   const supabase = createClient();
-  try {
-    const data = await firstSuccessfulWrite(cyclePayloads(cycle), (payload) =>
-      supabase.from("cycles").update(payload).eq("id", id).select().single(),
-    );
-    return normalizeCycle(data);
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("updateCycle failed:", error);
-    throw error;
-  }
+  const { data, error } = await supabase.from("cycles").update(cyclePayload(cycle)).eq("id", id).select().single();
+  if (error) throw error;
+  return normalizeCycle(data);
 }
 
 export async function deleteCycle(id) {
   const supabase = createClient();
   const { error } = await supabase.from("cycles").delete().eq("id", id);
   if (error) {
-    // eslint-disable-next-line no-console
     console.error("deleteCycle failed:", error);
     throw error;
   }
@@ -344,14 +221,11 @@ export async function deleteCycle(id) {
 
 export async function upsertTelemetry(entry) {
   const supabase = createClient();
-  try {
-    const data = await firstSuccessfulWrite(telemetryPayloads(entry), (payload) =>
-      supabase.from("daily_telemetry").upsert(payload, { onConflict: "date" }).select().single(),
-    );
-    return normalizeTelemetry(data);
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error("upsertTelemetry failed:", error);
-    throw error;
-  }
+  const { data, error } = await supabase
+    .from("daily_telemetry")
+    .upsert(telemetryPayload(entry), { onConflict: "date" })
+    .select()
+    .single();
+  if (error) throw error;
+  return normalizeTelemetry(data);
 }

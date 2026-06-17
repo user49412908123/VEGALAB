@@ -2,15 +2,15 @@
   display: flex;
   flex-direction: column;
   gap: 22px;
+  padding-top: 14px;
 }
 
 .hero {
-  min-height: 150px;
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 18px;
-  padding: 20px;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 180px;
+  padding: 22px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -41,10 +41,10 @@
 }
 
 .heroActions {
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin-top: auto;
 }
 
 .primaryButton,
@@ -108,45 +108,71 @@
 
 .cycles {
   display: grid;
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(240px, 78%);
+  grid-template-columns: 1fr;
   gap: 12px;
-  margin-inline: -14px;
-  padding-inline: 14px;
-  overflow-x: auto;
-  scroll-snap-type: x mandatory;
 }
 
 .cycle {
-  min-height: 124px;
-  scroll-snap-align: start;
   display: flex;
-  flex-direction: column;
   align-items: flex-start;
-  gap: 8px;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 16px 14px;
   border: 1px solid var(--line);
-  border-left-width: 4px;
   border-radius: var(--radius-md);
-  padding: 15px;
-  background: rgba(255, 255, 255, 0.025);
-  color: var(--foreground);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.cycleBody {
+  min-width: 0;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  flex: 1 1 auto;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: inherit;
   text-align: left;
 }
 
-.cycle span {
+.cycleDot {
+  width: 10px;
+  height: 10px;
+  margin-top: 5px;
+  flex: 0 0 auto;
+  border-radius: 999px;
+  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.03);
+}
+
+.cycleCopy {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.cycleCopy span {
   color: var(--muted);
   font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.cycle strong {
-  font-size: 1.02rem;
+.cycleCopy strong {
+  font-size: 0.98rem;
 }
 
-.cycle small {
-  margin-top: auto;
+.cycleCopy small {
   color: var(--muted-strong);
   font-family: var(--font-geist-mono), monospace;
   font-size: 0.68rem;
+}
+
+.cycleCopy p {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.45;
 }
 
 .timeline {
@@ -231,28 +257,23 @@
 }
 
 .pink {
-  border-color: rgba(255, 122, 190, 0.42);
-  color: #ff8cc8;
+  background: #ff8cc8;
 }
 
 .green {
-  border-color: rgba(85, 214, 164, 0.42);
-  color: #72dfb5;
+  background: #72dfb5;
 }
 
 .blue {
-  border-color: rgba(114, 169, 255, 0.42);
-  color: #8db7ff;
+  background: #8db7ff;
 }
 
 .amber {
-  border-color: rgba(245, 194, 91, 0.45);
-  color: #f5c25b;
+  background: #f5c25b;
 }
 
 .slate {
-  border-color: rgba(212, 212, 216, 0.32);
-  color: #d4d4d8;
+  background: #d4d4d8;
 }
 
 .overlay {
@@ -325,6 +346,40 @@
   text-align: left;
 }
 
+.durationPicker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--muted-strong);
+  font-size: 0.78rem;
+}
+
+.durationGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.durationGrid button {
+  min-height: 42px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--foreground);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.durationActive {
+  border-color: var(--accent-line);
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+}
+
 .menu {
   z-index: 80;
   min-width: 220px;
@@ -391,6 +446,34 @@
   margin-inline: -20px;
   padding: 14px 20px 20px;
   background: linear-gradient(180deg, transparent, var(--surface) 24%);
+}
+
+@media (min-width: 720px) {
+  .page {
+    padding-top: 20px;
+  }
+
+  .hero {
+    padding: 26px;
+  }
+
+  .heroActions {
+    max-width: 320px;
+  }
+}
+
+@media (max-width: 600px) {
+  .heroActions {
+    grid-template-columns: 1fr;
+  }
+
+  .cycle {
+    align-items: flex-start;
+  }
+
+  .durationGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .duplicateText {

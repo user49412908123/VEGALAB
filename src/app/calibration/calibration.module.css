@@ -6,7 +6,7 @@
 }
 
 .hero {
-  padding: 20px;
+  padding: 22px;
   border: 1px solid var(--line);
   border-radius: var(--radius-lg);
   background: var(--surface);
@@ -34,6 +34,53 @@
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.45;
+}
+
+.saveCard {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.saveCard strong {
+  font-size: 0.95rem;
+}
+
+.saveCard span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.saveCardSuccess {
+  border-color: rgba(85, 214, 164, 0.28);
+  background: rgba(85, 214, 164, 0.08);
+}
+
+.saveCardSuccess strong {
+  color: var(--success);
+}
+
+.saveCardError {
+  border-color: rgba(255, 107, 107, 0.28);
+  background: rgba(255, 107, 107, 0.08);
+}
+
+.saveCardError strong {
+  color: var(--danger);
+}
+
+.saveCardWarning {
+  border-color: rgba(245, 194, 91, 0.28);
+  background: rgba(245, 194, 91, 0.08);
+}
+
+.saveCardWarning strong {
+  color: var(--warning);
 }
 
 .readiness {
@@ -91,6 +138,12 @@
   padding: 10px 12px;
   background: rgba(255, 255, 255, 0.055);
   color: var(--foreground);
+}
+
+.dateHint {
+  color: var(--muted);
+  font-size: 0.75rem;
+  line-height: 1.4;
 }
 
 .selectRow {
@@ -231,4 +284,98 @@
   border-color: var(--accent-line);
   background: var(--accent-soft);
   color: var(--accent-strong);
+}
+
+.actions button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.loadError {
+  color: var(--danger);
+  font-size: 0.85rem;
+}
+
+.chartPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-md);
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.chartHeader {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.chartHeader h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.chartHeader p {
+  color: var(--muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.chartLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  color: var(--muted-strong);
+  font-size: 0.76rem;
+}
+
+.chartLegend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chartLegend i {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  display: inline-block;
+}
+
+.legendGood {
+  background: rgba(85, 214, 164, 0.9);
+}
+
+.legendMid {
+  background: rgba(245, 194, 91, 0.9);
+}
+
+.legendLow {
+  background: rgba(255, 255, 255, 0.35);
+}
+
+@media (min-width: 720px) {
+  .hero {
+    padding: 26px;
+  }
+}
+
+@media (max-width: 640px) {
+  .readiness {
+    align-items: flex-start;
+  }
+
+  .actions {
+    position: static;
+    border-radius: var(--radius-md);
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
+  }
+
+  .actions button {
+    width: 100%;
+  }
 }
