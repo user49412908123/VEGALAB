@@ -76,26 +76,52 @@ export const normalizeTelemetry = (entry) => ({
 const sessionPayloads = (session) => [
   session,
   {
+    // English-ish keys (for backwards compat)
+    cycle_id: session.cycle_id,
+    cycle_ids: session.cycle_ids,
+    name: session.name,
+    date: session.date,
+    time: session.time,
+    duration: session.duration,
+    location: session.location,
+    objective: session.objective,
+    notes: session.notes,
+    type: session.type,
+    rpe: session.rpe,
+    internal_load: session.internal_load,
+    predicted_muscular_form: session.predicted_muscular_form,
+    predicted_finger_form: session.predicted_finger_form,
+    predicted_neural_form: session.predicted_neural_form,
+    predicted_general_form: session.predicted_general_form,
+    success_rate: session.success_rate,
+    motivation: session.motivation,
+    one_arm_hang_feeling: session.one_arm_hang_feeling,
+    explosive_pull_feeling: session.explosive_pull_feeling,
+  },
+  {
+    // French/legacy column names (covers the DB schema variations)
     cycle_id: session.cycle_id,
     cycle_ids: session.cycle_ids,
     nom: session.name,
     date: session.date,
     heure: session.time,
     duree: session.duration,
+    duree_minutes: session.duration,
     lieu: session.location,
     objectif: session.objective,
     notes: session.notes,
     type: session.type,
+    type_seance: session.type,
     rpe: session.rpe,
     charge_interne: session.internal_load,
-    forme_musculaire_presentie: session.predicted_muscular_form,
-    forme_doigts_presentie: session.predicted_finger_form,
-    forme_nerveuse_presentie: session.predicted_neural_form,
-    forme_generale_presentie: session.predicted_general_form,
     taux_reussite: session.success_rate,
     motivation: session.motivation,
-    ressenti_suspension_un_bras: session.one_arm_hang_feeling,
-    sensation_traction_explosive: session.explosive_pull_feeling,
+    forme_musculaire: session.predicted_muscular_form,
+    forme_doigts: session.predicted_finger_form,
+    forme_nerveuse: session.predicted_neural_form,
+    forme_generale: session.predicted_general_form,
+    suspension_1bras: session.one_arm_hang_feeling,
+    traction_explosive: session.explosive_pull_feeling,
   },
 ];
 
@@ -114,36 +140,73 @@ const cyclePayloads = (cycle) => [
 const telemetryPayloads = (entry) => [
   entry,
   {
+    // English keys
     date: entry.date,
-    qualite_sommeil: entry.sleep_quality,
-    heure_coucher: entry.bedtime,
-    heure_reveil: entry.wake_time,
-    nombre_siestes: entry.naps_count,
-    duree_totale_siestes: entry.naps_total_duration,
+    sleep_quality: entry.sleep_quality,
+    bedtime: entry.bedtime,
+    wake_time: entry.wake_time,
+    naps_count: entry.naps_count,
+    naps_total_duration: entry.naps_total_duration,
+    work_stress: entry.work_stress,
+    work_volume: entry.work_volume,
+    personal_stress: entry.personal_stress,
+    work_satisfaction: entry.work_satisfaction,
+    motivation: entry.motivation,
+    confidence: entry.confidence,
+    mood: entry.mood,
+    meditation: entry.meditation,
+    hydration: entry.hydration,
+    breakfast_quality: entry.breakfast_quality,
+    lunch_quality: entry.lunch_quality,
+    dinner_quality: entry.dinner_quality,
+    morning_mobility: entry.morning_mobility,
+    soreness_index: entry.soreness_index,
+    screen_interactions: entry.screen_interactions,
+  },
+  {
+    // French / alternative column names used in your DB
+    date: entry.date,
+    sommeil_qualite: entry.sleep_quality,
+    sommeil_horaire_coucher: entry.bedtime,
+    sommeil_horaire_reveil: entry.wake_time,
+    sieste_nombre: entry.naps_count,
+    sieste_duree: entry.naps_total_duration,
     stress_travail: entry.work_stress,
     volume_travail: entry.work_volume,
-    stress_personnel: entry.personal_stress,
+    stress_perso: entry.personal_stress,
     satisfaction_travail: entry.work_satisfaction,
     motivation: entry.motivation,
     confiance: entry.confidence,
     humeur: entry.mood,
     meditation: entry.meditation,
-    hydration: entry.hydration,
+    hydratation: entry.hydration,
     qualite_repas_matin: entry.breakfast_quality,
     qualite_repas_midi: entry.lunch_quality,
     qualite_repas_soir: entry.dinner_quality,
     mobilite_matinale: entry.morning_mobility,
     indice_courbature_generale: entry.soreness_index,
-    interactions_ecrans: entry.screen_interactions,
+    interactions_ecran: entry.screen_interactions,
   },
 ];
 
 async function firstSuccessfulWrite(payloads, writer) {
   let lastError;
   for (const payload of payloads) {
-    const { data, error } = await writer(payload);
-    if (!error) return data;
-    lastError = error;
+    try {
+      const result = await writer(payload);
+      // writer returns supabase response with { data, error }
+      if (result && !result.error) return result.data;
+      if (result && result.error) {
+        // log error detail for diagnostics
+        // eslint-disable-next-line no-console
+        console.error("Supabase write error:", result.error, "payload:", payload);
+        lastError = result.error;
+      }
+    } catch (err) {
+      // eslint-disable-next-line no-console
+      console.error("Unexpected write exception:", err, "payload:", payload);
+      lastError = err;
+    }
   }
   throw lastError;
 }
@@ -154,10 +217,19 @@ async function readTable(table, fallback, query) {
     const request = query ? query(supabase.from(table)) : supabase.from(table).select("*");
     const { data, error } = await request;
     if (error) {
+      // eslint-disable-next-line no-console
+      console.error(`Error reading table ${table}:`, error);
       return { data: fallback, source: "demo", error };
     }
-    return { data: data?.length ? data : fallback, source: data?.length ? "supabase" : "demo" };
+    if (!data || !data.length) {
+      // eslint-disable-next-line no-console
+      console.warn(`Read ${table}: no rows returned, falling back to demo`);
+      return { data: fallback, source: "demo" };
+    }
+    return { data, source: "supabase" };
   } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error(`Exception reading table ${table}:`, error);
     return { data: fallback, source: "demo", error };
   }
 }
@@ -196,52 +268,90 @@ export async function loadVegalabData(days = undefined) {
 
 export async function insertSession(session) {
   const supabase = createClient();
-  const data = await firstSuccessfulWrite(sessionPayloads(session), (payload) =>
-    supabase.from("sessions").insert(payload).select().single(),
-  );
-  return normalizeSession(data);
+  try {
+    const data = await firstSuccessfulWrite(sessionPayloads(session), (payload) =>
+      supabase.from("sessions").insert(payload).select().single(),
+    );
+    return normalizeSession(data);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("insertSession failed:", error);
+    throw error;
+  }
 }
 
 export async function updateSession(id, session) {
   const supabase = createClient();
-  const data = await firstSuccessfulWrite(sessionPayloads(session), (payload) =>
-    supabase.from("sessions").update(payload).eq("id", id).select().single(),
-  );
-  return normalizeSession(data);
+  try {
+    const data = await firstSuccessfulWrite(sessionPayloads(session), (payload) =>
+      supabase.from("sessions").update(payload).eq("id", id).select().single(),
+    );
+    return normalizeSession(data);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("updateSession failed:", error);
+    throw error;
+  }
 }
 
 export async function deleteSession(id) {
   const supabase = createClient();
   const { error } = await supabase.from("sessions").delete().eq("id", id);
-  if (error) throw error;
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.error("deleteSession failed:", error);
+    throw error;
+  }
 }
 
 export async function insertCycle(cycle) {
   const supabase = createClient();
-  const data = await firstSuccessfulWrite(cyclePayloads(cycle), (payload) =>
-    supabase.from("cycles").insert(payload).select().single(),
-  );
-  return normalizeCycle(data);
+  try {
+    const data = await firstSuccessfulWrite(cyclePayloads(cycle), (payload) =>
+      supabase.from("cycles").insert(payload).select().single(),
+    );
+    return normalizeCycle(data);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("insertCycle failed:", error);
+    throw error;
+  }
 }
 
 export async function updateCycle(id, cycle) {
   const supabase = createClient();
-  const data = await firstSuccessfulWrite(cyclePayloads(cycle), (payload) =>
-    supabase.from("cycles").update(payload).eq("id", id).select().single(),
-  );
-  return normalizeCycle(data);
+  try {
+    const data = await firstSuccessfulWrite(cyclePayloads(cycle), (payload) =>
+      supabase.from("cycles").update(payload).eq("id", id).select().single(),
+    );
+    return normalizeCycle(data);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("updateCycle failed:", error);
+    throw error;
+  }
 }
 
 export async function deleteCycle(id) {
   const supabase = createClient();
   const { error } = await supabase.from("cycles").delete().eq("id", id);
-  if (error) throw error;
+  if (error) {
+    // eslint-disable-next-line no-console
+    console.error("deleteCycle failed:", error);
+    throw error;
+  }
 }
 
 export async function upsertTelemetry(entry) {
   const supabase = createClient();
-  const data = await firstSuccessfulWrite(telemetryPayloads(entry), (payload) =>
-    supabase.from("daily_telemetry").upsert(payload, { onConflict: "date" }).select().single(),
-  );
-  return normalizeTelemetry(data);
+  try {
+    const data = await firstSuccessfulWrite(telemetryPayloads(entry), (payload) =>
+      supabase.from("daily_telemetry").upsert(payload, { onConflict: "date" }).select().single(),
+    );
+    return normalizeTelemetry(data);
+  } catch (error) {
+    // eslint-disable-next-line no-console
+    console.error("upsertTelemetry failed:", error);
+    throw error;
+  }
 }
